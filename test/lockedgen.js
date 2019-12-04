@@ -21,7 +21,7 @@ contract('LockedGEN',  accounts =>  {
     await setup(accounts);
 
     assert.equal(await gen.balanceOf(accounts[0]), initBalance);
-    assert.equal(await lgn.GENtoken(), gen.address);
+    assert.equal(await lgn.genToken(), gen.address);
     assert.equal(await lgn.lockTime(), lockTime);
   });
 
@@ -29,7 +29,7 @@ contract('LockedGEN',  accounts =>  {
     await setup(accounts);
 
     await gen.approve(lgn.address, 100);
-    await lgn.createLGN(100);
+    await lgn.mintLGN(100);
 
     assert.equal(await gen.balanceOf(accounts[0]), initBalance - 100);
     assert.equal(await lgn.balanceOf(accounts[0]), 100);
@@ -39,8 +39,8 @@ contract('LockedGEN',  accounts =>  {
     await setup(accounts);
 
     await gen.approve(lgn.address, 100);
-    await lgn.createLGN(100);
-    await lgn.returnLGN(50);
+    await lgn.mintLGN(100);
+    await lgn.burnLGN(50);
 
 
     assert.equal(await lgn.balanceOf(accounts[0]), 50);
@@ -54,12 +54,12 @@ contract('LockedGEN',  accounts =>  {
     await setup(accounts);
 
     await gen.approve(lgn.address, 100);
-    await lgn.createLGN(100);
-    await lgn.returnLGN(50);
+    await lgn.mintLGN(100);
+    await lgn.burnLGN(50);
 
     // Try to release before locktime finished:
     try{
-      await lgn.release(0);
+      await lgn.releaseGEN(0);
       assert(false, "Should not be able to release gen");
     } catch (ex) {
         // helpers.assertVMException(ex);
@@ -68,7 +68,7 @@ contract('LockedGEN',  accounts =>  {
     // Run time forward and release:
     await helpers.increaseTime(lockTime+1);
     assert.equal(await gen.balanceOf(accounts[0]), initBalance - 100);
-    await lgn.release(0);
+    await lgn.releaseGEN(0, { from: accounts[1] });
     assert.equal(await gen.balanceOf(accounts[0]), initBalance - 50);
     assert.equal(await lgn.balanceOf(accounts[0]), 50);
 

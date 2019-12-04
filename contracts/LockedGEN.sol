@@ -4,13 +4,13 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 
 contract LockedGEN is ERC20 {
-    event StartLockPeriod(uint _lockId, address indexed _owner, uint _amount, uint _releaseTime);
-    event ReleaseGEN(uint _lockId, address indexed _owner, uint _amount);
+    event StartLockPeriod(uint256 indexed _lockId, address indexed _owner, uint256 _amount, uint256 _releaseTime);
+    event ReleaseGEN(uint256 indexed _lockId, address indexed _owner, uint256 _amount);
 
     struct lock {
         address owner;
-        uint amount;
-        uint releaseTime;
+        uint256 amount;
+        uint256 releaseTime;
         bool released;
     }
 
@@ -20,44 +20,44 @@ contract LockedGEN is ERC20 {
     uint8 public constant decimals = 18;
 
     // Constant parameters:
-    ERC20 public GENtoken;
-    uint public lockTime;
+    ERC20 public genToken;
+    uint256 public lockTime;
 
     // Contract storage:
-    mapping (uint=>lock) public locks;
-    uint public locksCounter;
+    mapping (uint256=>lock) public locks;
+    uint256 public locksCounter;
 
-    constructor(ERC20 _GENtoken, uint _lockTime) public {
-        GENtoken = _GENtoken;
+    constructor(ERC20 _genToken, uint256 _lockTime) public {
+        genToken = _genToken;
         lockTime = _lockTime;
     }
 
-    function createLGN(uint _amount) public {
-        GENtoken.transferFrom(msg.sender, address(this), _amount);
+    function mintLGN(uint256 _amount) public {
+        genToken.transferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, _amount);
     }
 
-    function returnLGN(uint _amount) public returns(uint _lockId) {
+    function burnLGN(uint256 _amount) public returns(uint256 lockId) {
         // Check user has enough on his balance, and burn his tokens:
         require(balanceOf(msg.sender) >= _amount, "balance is too low");
         _burn(msg.sender, _amount);
 
         // Set lock:
-        _lockId = locksCounter;
-        uint releaseTime = block.timestamp + lockTime;
-        locks[_lockId] = lock(msg.sender, _amount, releaseTime, false);
-        emit StartLockPeriod(_lockId, msg.sender, _amount, releaseTime);
+        lockId = locksCounter;
+        uint256 releaseTime = block.timestamp + lockTime;
+        locks[lockId] = lock(msg.sender, _amount, releaseTime, false);
+        emit StartLockPeriod(lockId, msg.sender, _amount, releaseTime);
         locksCounter++;
     }
 
-    function release(uint _lockId) public {
+    function releaseGEN(uint256 _lockId) public {
         // Check locking time has passed, and tokens were not released in the past
         require(block.timestamp > locks[_lockId].releaseTime, "Locking time is not over");
-        require(! locks[_lockId].released, "GENs already collected");
+        require(!locks[_lockId].released, "Lock was already released");
 
         // release GEN:
         locks[_lockId].released = true;
-        GENtoken.transfer(msg.sender, locks[_lockId].amount);
+        genToken.transfer(locks[_lockId].owner, locks[_lockId].amount);
         emit ReleaseGEN(_lockId, msg.sender, locks[_lockId].amount);
     }
 }
