@@ -1,9 +1,9 @@
-pragma solidity ^0.5.11;
+pragma solidity 0.5.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
- * @title A contract for creating locked GENs
+ * @title A contract for creating locked GENs, represented as Locked-GENs (LGNs) tokens
  */
 
 contract LockedGEN is ERC20 {
@@ -22,7 +22,7 @@ contract LockedGEN is ERC20 {
     string public constant symbol = "LGN";
     uint8 public constant decimals = 18;
 
-    // Constant parameters:
+    // Parameters:
     ERC20 public genToken;
     uint256 public lockTime;
 
@@ -30,17 +30,21 @@ contract LockedGEN is ERC20 {
     mapping (uint256=>Lock) public locks;
     uint256 public locksCounter;
 
+    /**
+    * @dev constructor, setting the GEN token address, and the locking time.
+    * @param _genToken address of GEN token, in the current network.
+    * @param _lockTime the period for which the tokens will be locked.
+    */
     constructor(ERC20 _genToken, uint256 _lockTime) public {
         genToken = _genToken;
         lockTime = _lockTime;
     }
 
-
     /**
     * @dev minting LGN for msg.sender, transferring the same amount of GEN from user.
     * @param _amount amount of GEN to be turned to LGN.
     */
-    function mintLGN(uint256 _amount) public {
+    function mintLGN(uint256 _amount) external {
         genToken.transferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, _amount);
     }
@@ -48,10 +52,12 @@ contract LockedGEN is ERC20 {
     /**
     * @dev burning LGN for msg.sender, starting a locking time for the user to get GEN.
     * @param _amount amount of LGN to be burned.
+    * @return lockId, the locking Id.
     */
-    function burnLGN(uint256 _amount) public returns(uint256 lockId) {
+    function burnLGN(uint256 _amount) external returns(uint256 lockId) {
         // Check user has enough on his balance, and burn his tokens:
-        require(balanceOf(msg.sender) >= _amount, "balance is too low");
+        require(balanceOf(msg.sender) >= _amount, "Balance is too low");
+        require(_amount != 0);
         _burn(msg.sender, _amount);
 
         // Set lock:
@@ -68,12 +74,13 @@ contract LockedGEN is ERC20 {
     }
 
     /**
-    * @dev burning LGN for msg.sender, starting a locking time for the user to get GEN.
+    * @dev Release the GENs from locking _lockId, if locking time is over.
     * @param _lockId the id of the lock that is to be unlocked.
     */
-    function releaseGEN(uint256 _lockId) public {
+    function releaseGEN(uint256 _lockId) external {
         // Check locking time has passed, and tokens were not released in the past
         require(block.timestamp > locks[_lockId].releaseTime, "Locking time is not over");
+        require(locks[_lockId].amount != 0);
         require(!locks[_lockId].released, "Lock was already released");
 
         // release GEN:
